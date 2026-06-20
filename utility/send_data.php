@@ -276,18 +276,49 @@ class SendData{
         if (isset($update['message']) && $update['message']['text'] == '/start') {
 
             $chat_id = $update['message']['chat']['id'];
+            /*
             $username = 
             isset($update['message']['chat']['username']) ? 
             $update['message']['chat']['username'] : '';
+            */
 
-            // Reply to a user on Telegram (optional)
-            $reply_url = 
-            'https://api.telegram.org/bot'.TELEGRAM_API_TOKEN.'/sendMessage?chat_id='.$chat_id.
-            '&text=Привет! Я получил ваш chat_id.';
+            $url = 'https://api.telegram.org/bot'.TELEGRAM_API_TOKEN.'/sendMessage';
+            $message = "Повідомлення з боту телеграм.";
 
-            //file_put_contents($responseSaveStatusFile, $reply_url, LOCK_EX);
+            $data = [
+                'chat_id' => $chat_id,
+                'text' => $message,
+                'parse_mode' => 'HTML'
+            ];
 
-            file_get_contents($reply_url);
+            $ch = curl_init();
+
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_POST, true);
+            // You can also pass json_encode($data), changing the headers
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            //curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // for a local server (OpenServer, etc.)
+
+            $response = curl_exec($ch);
+
+            if(curl_errno($ch)){
+
+                file_put_contents($errorResponseTelApiFile, curl_error($ch), LOCK_EX);
+            }
+
+            if(function_exists('curl_close')) curl_close($ch);
+
+            $result = json_decode($response, true);
+
+            if (isset($result['ok']) && $result['ok']) {
+
+                //file_put_contents($responseSaveStatusFile, 'Status ok.', LOCK_EX);
+            } else {
+
+                if(isset($result['description']))
+                file_put_contents($errorResponseTelApiFile, 'ERROR. '.$result['description'], LOCK_EX);
+            }
         }
     }
 }
