@@ -3,11 +3,14 @@
 class SendData{
     
     public static $db = '';
+
     public $salesdrive_url = "https://textlexx.salesdrive.me/handler/";
     public $salesdrive_headers = [
         "Content-Type: application/json",
         "X-Api-Key: ".SALES_DRIVE_API_KEY
     ];
+
+    public $tl_gram_send_url = 'https://api.telegram.org/bot'.TELEGRAM_API_TOKEN.'/sendMessage';
     
     public $uname = '';
     public $phone = '';
@@ -283,7 +286,6 @@ class SendData{
             $update['message']['chat']['username'] : '';
             */
 
-            $url = 'https://api.telegram.org/bot'.TELEGRAM_API_TOKEN.'/sendMessage';
             $message = "Повідомлення з боту телеграм.";
 
             $data = [
@@ -294,7 +296,7 @@ class SendData{
 
             $ch = curl_init();
 
-            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_URL, $this->tl_gram_send_url);
             curl_setopt($ch, CURLOPT_POST, true);
             // You can also pass json_encode($data), changing the headers
             curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
