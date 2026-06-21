@@ -2,6 +2,7 @@
 
 class SendData{
     
+    public static $db = '';
     public $salesdrive_url = "https://textlexx.salesdrive.me/handler/";
     public $salesdrive_headers = [
         "Content-Type: application/json",
@@ -321,6 +322,20 @@ class SendData{
             }
         }
     }
+
+    public static function dbConnection($db_extension_class = 'CDBMysqli', $charset = 'utf8', $collation = 'utf8_general_ci'){		
+		
+		if( ! SendData::$db = $db_extension_class::createDb() ){
+			
+            Notifications::set_e('Error. Not connection to db.');
+
+			return false;
+		}
+		
+		$db_extension_class::setDbCharset($charset, $collation);
+		
+		return true;
+	}
 }
 
 
