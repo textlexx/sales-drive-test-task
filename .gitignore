@@ -1,3 +1,4 @@
 config/*
 deny/*
+sql/*
 .vscode
