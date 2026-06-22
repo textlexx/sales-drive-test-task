@@ -30,6 +30,7 @@ class SendData{
 
         $this->dilovod($dat->uname, $dat->phone, $telegram_id);
     }
+    
 
     public function check_data_return(){
 
