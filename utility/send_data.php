@@ -101,7 +101,7 @@ class SendData{
 
         $salesdrive_res = (object) $salesdrive_res;
 
-        $telegram_id = $this->check_user_exists_in_db($dat->phone);
+        $telegram_id = $this->get_db_tgram_id($dat->phone);
 
         if(
             $salesdrive_res && is_object($salesdrive_res) && 
@@ -434,7 +434,7 @@ class SendData{
 	}
 
 
-    public function check_user_exists_in_db($phone){
+    public function get_db_tgram_id($phone){
 
         $tableName = 'users';
 
