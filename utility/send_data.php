@@ -2,7 +2,7 @@
 
 class SendData{
     
-    public static $db = '';
+    public static $db = EMPTY_OBJ;
 
     public $salesdrive_url = "https://textlexx.salesdrive.me/handler/";
     public $salesdrive_headers = [
@@ -10,7 +10,7 @@ class SendData{
         "X-Api-Key: ".SALES_DRIVE_API_KEY
     ];
 
-    public $tl_gram_send_url = 'https://api.telegram.org/bot'.TELEGRAM_API_TOKEN.'/sendMessage';
+    public $tgram_send_mess_url = 'https://api.telegram.org/bot'.TELEGRAM_API_TOKEN.'/sendMessage';
     
     public $uname = '';
     public $phone = '';
@@ -152,75 +152,54 @@ class SendData{
 
         return false;
     }
+    
 
-    public function set_telegram_webhook(){
+    public function set_or_del_tgram_webhook($action = 1){
 
         if( !isset($_GET['set_hook']) ) return false;
         //--------------------------------------
 
-        $serverUrl = 'https://creation.zt.ua/send-data/?start_chat';
-
         $responseSaveStatusFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/response_save_status_file.txt';
+        
+        $postfix = '';
+        if($action) {
 
-        $secretTokenFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/secret_token.txt';
-        clearstatcache();
-        if( ! file_exists($secretTokenFile) ) {
+            $serverUrl = 'https://creation.zt.ua/send-data/?start_chat';
 
-            $secretToken = bin2hex(random_bytes(32));
-            file_put_contents($secretTokenFile, $secretToken, LOCK_EX);
-        }else{
+            $secretTokenFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/secret_token.txt';
+            clearstatcache();
+            if( ! file_exists($secretTokenFile) ) {
 
-            $secretToken = file_get_contents($secretTokenFile);
+                $secretToken = bin2hex(random_bytes(32));
+                file_put_contents($secretTokenFile, $secretToken, LOCK_EX);
+            }else{
 
-            if( preg_match('#^[\s]*$#', $secretToken) ) return false;
-        }        
+                $secretToken = file_get_contents($secretTokenFile);
+
+                if( preg_match('#^[\s]*$#', $secretToken) ) return false;
+            }  
+            
+            $postfix = "?url=" . urlencode($serverUrl) . "&secret_token=" . urlencode($secretToken);
+        }
 
         // Формируем URL для привязки вебхука
         $url = 
-        // SET_TELEGRAM_WEBHOOK_URL = 'https://api.telegram.org/bot{$botToken}/setWebhook'
-        SET_TELEGRAM_WEBHOOK_URL
-        ."?url=" . urlencode($serverUrl) . "&secret_token=" . urlencode($secretToken);
+        // set_or_del_tgram_webhook_URL = 'https://api.telegram.org/bot{$botToken}/setWebhook'
+        SET_TELEGRAM_WEBHOOK_URL.$postfix;
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
         $response = curl_exec($ch);
 
         if(function_exists('curl_close')) curl_close($ch);
 
         file_put_contents($responseSaveStatusFile, $response, LOCK_EX);
-
-        //echo $response;
     }
 
-    public function del_telegram_webhook(){
 
-        if( !isset($_GET['del_hook']) ) return false;
-        //--------------------------------------
-
-        $responseSaveStatusFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/response_save_status_file.txt';
-
-        // Формируем URL для удаления вебхука
-        $url = 
-        // SET_TELEGRAM_WEBHOOK_URL = 'https://api.telegram.org/bot{$botToken}/setWebhook'
-        SET_TELEGRAM_WEBHOOK_URL;
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $response = curl_exec($ch);
-
-        if(function_exists('curl_close')) curl_close($ch);
-
-        file_put_contents($responseSaveStatusFile, $response, LOCK_EX);
-
-        //echo $response;
-    }
-
-    public function get_response_from_telegram_bot(){
-
-        if( !isset($_GET['start_chat']) ) return false;
-        //--------------------------------------
+    public function get_tgram_or_stop(){
 
         $responseSaveStatusFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/response_save_status_file.txt';
         $errorResponseTelApiFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/t_api_response_error.txt';
@@ -243,7 +222,6 @@ class SendData{
             return false;
         }
 
-        // We receive the data sent by Telegram       
         $content = file_get_contents("php://input");
         $update = json_decode($content, true);
         $headers = getallheaders();
@@ -270,6 +248,21 @@ class SendData{
                 return false;
             }
         }
+
+        return $update;
+    }
+
+
+    // GET FROM
+    public function get_response_from_telegram_bot(){
+
+        if( !isset($_GET['start_chat']) ) return false;
+        //--------------------------------------
+
+        $responseSaveStatusFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/response_save_status_file.txt';
+        $errorResponseTelApiFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/t_api_response_error.txt';
+
+        if( ! $update = $this->get_tgram_or_stop() ) return false;
             
 
         //------------------------------
@@ -286,44 +279,97 @@ class SendData{
             $update['message']['chat']['username'] : '';
             */
 
-            $message = "Повідомлення з боту телеграм.";
+            $this->send_to_telegram(
+                $chat_id, 
+                'Для продовження роботи, будь ласка, підтвердіть свій номер телефону, натиснувши на кнопку нижче:', [
+                'keyboard' => [
+                    [
+                        [
+                            'text' => 'Поделиться номером телефона',
+                            'request_contact' => true // This parameter asks for a number
+                        ]
+                    ]
+                ],
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true
+            ]);
+        }
+        elseif (isset($update['message']['contact'])) {
 
-            $data = [
-                'chat_id' => $chat_id,
-                'text' => $message,
-                'parse_mode' => 'HTML'
-            ];
+            $contact = $update['message']['contact'];
+            
+            $phoneNumber = $contact['phone_number'];
+            $userId = $contact['user_id'];
+            $firstName = $contact['first_name'];
+            
+            // Security check: Does the sender's ID match the contact's ID?
+            // (to prevent the user from forwarding someone else's contact instead of their own)
+            $senderId = $update['message']['from']['id'];
+            
+            if ($userId == $senderId) {
 
-            $ch = curl_init();
-
-            curl_setopt($ch, CURLOPT_URL, $this->tl_gram_send_url);
-            curl_setopt($ch, CURLOPT_POST, true);
-            // You can also pass json_encode($data), changing the headers
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            //curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // for a local server (OpenServer, etc.)
-
-            $response = curl_exec($ch);
-
-            if(curl_errno($ch)){
-
-                file_put_contents($errorResponseTelApiFile, curl_error($ch), LOCK_EX);
-            }
-
-            if(function_exists('curl_close')) curl_close($ch);
-
-            $result = json_decode($response, true);
-
-            if (isset($result['ok']) && $result['ok']) {
-
-                //file_put_contents($responseSaveStatusFile, 'Status ok.', LOCK_EX);
+                // The number is valid. We're saving it to the database.
+                
+                // We send a confirmation to the user and remove the keyboard
+                $this->send_to_telegram(
+                    $userId, 'Ваш номер успішно підтверджено.', [
+                        'remove_keyboard' => true,
+                    ]
+                );
             } else {
-
-                if(isset($result['description']))
-                file_put_contents($errorResponseTelApiFile, 'ERROR. '.$result['description'], LOCK_EX);
+                
+                file_put_contents($errorResponseTelApiFile, 
+                'The user sent someone else`s contact information', LOCK_EX);
             }
         }
     }
+
+
+    public function send_to_telegram($chat_id, $message = '', $keyboard = []){
+
+        $responseSaveStatusFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/response_save_status_file.txt';
+        $errorResponseTelApiFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/t_api_response_error.txt';
+
+        $data = [];
+        $data['chat_id'] = $chat_id;
+        $data['parse_mode'] = 'HTML';
+        $data['text'] = $message;
+
+        if( $keyboard ){
+
+            $data['reply_markup'] = json_encode($keyboard);
+        }
+
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $this->tgram_send_mess_url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $response = curl_exec($ch);
+
+        if(curl_errno($ch)){
+
+            file_put_contents($errorResponseTelApiFile, curl_error($ch), LOCK_EX);
+        }
+
+        if(function_exists('curl_close')) curl_close($ch);
+
+        $result = json_decode($response, true);
+
+        if (isset($result['ok']) && $result['ok']) {
+
+            //file_put_contents($responseSaveStatusFile, 'Status ok.', LOCK_EX);
+            return true;
+        } else {
+
+            if(isset($result['description']))
+            file_put_contents($errorResponseTelApiFile, 'ERROR. '.$result['description'], LOCK_EX);
+            return false;
+        }
+    }
+
 
     public static function dbConnection($db_extension_class = 'CDBMysqli', $charset = 'utf8', $collation = 'utf8_general_ci'){		
 		
@@ -338,6 +384,43 @@ class SendData{
 		
 		return true;
 	}
+
+
+    public function add_user($name, $phone, $telegram_id = 0){
+
+        $tableName = 'users'; $rowName = 'id';
+
+        $next_id = SendData::$db->genNextId($tableName, $rowName);
+
+        if( ! $telegram_id ) {
+
+            SendData::$db->addInsertIgnore();
+
+            $res = SendData::$db->dbInsert(
+                $tableName,
+                [$rowName, 'telegram_id', 'name', 'phone',], [
+                    [$next_id, NULL, $name, $phone]
+                ]
+            );
+
+            if($res === false) return false;
+        }else{
+
+            $res = SendData::$db->dbOneSelect('
+                SELECT `telegram_id` FROM `'.$tableName.'` 
+                WHERE `phone` = "'.$phone.'" AND `telegram_id` = "'.$telegram_id.'"
+            ');
+
+            if($res === false) return false;
+            elseif(is_array($res) && isset($res['telegram_id']) && $res['telegram_id'] == $telegram_id){
+
+                return true;
+            }else{
+
+                
+            }
+        }
+    }
 }
 
 

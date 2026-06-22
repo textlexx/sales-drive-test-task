@@ -168,7 +168,7 @@ class CDBMysqli{
 	}
 	
 	// If IGNORE is required when using dbInsert(), this function can be used to add it, it must be called before dbInsert()
-	public function addInserIgnore(){
+	public function addInsertIgnore(){
 		
 		CDBMysqli::$add_insert_ignore = 'IGNORE';
 	}
@@ -335,6 +335,25 @@ class CDBMysqli{
 		if($addWhereWord) $where = ' WHERE '.$where;
 
 		return $where;
+	}
+
+	/*---------------------------------------------------------------------------------------*/
+
+	public static function genNextId($tableName = 'users', $rowName = 'id'){
+		
+		$data = CDBMysqli::$db_object->dbOneSelect(
+            'SELECT MAX(`'.$rowName.'`) AS `max_id` FROM `'.$tableName.'`'
+        );
+
+		if(CDBMysqli::$db_object->error){
+			
+			CDBMysqli::$db->error = CDBMysqli::$db_object->error;
+			Notifications::set_e(CDBMysqli::$db_object->error);
+			return false;
+		}
+		
+		if(!is_numeric($data['max_id'])) return 1;
+		return ($data['max_id'] + 1);
 	}
 
 	/*---------------------------------------------------------------------------------------*/

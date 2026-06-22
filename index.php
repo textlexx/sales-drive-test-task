@@ -20,11 +20,11 @@ if( SendData::dbConnection() ){
     }
     elseif(isset($_GET['set_hook'])){
 
-        $send->set_telegram_webhook();
+        $send->set_or_del_tgram_webhook(1);
     }
     elseif(isset($_GET['del_hook'])){
 
-        $send->del_telegram_webhook();
+        $send->set_or_del_tgram_webhook(0);
     }
     elseif(isset($_GET['start_chat'])){
 
