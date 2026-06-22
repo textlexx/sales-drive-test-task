@@ -334,7 +334,7 @@ class SendData{
             
             if ($userId == $senderId) {
 
-                $phone = preg_replace('#^+#', '', $phone);
+                $phone = preg_replace('#^\+*#', '', $phone);
 
                 // The number is valid. We're saving it to the database.
                 if(!$this->add_user($uname, $phone, $userId)) {
