@@ -178,7 +178,7 @@ class SendData{
 
         $errorResponseTelApiFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/t_api_response_error.txt';
 
-        $phone = preg_replace('#[\-\s+]+#', '', $_POST['tel']);
+        $phone = preg_replace('#[\-\s+]+#', '', $phone);
 
         // First check if number in format without 380 for example: 0631234567
         if( ! preg_match('#^0[1-9]{1}[1-9]{1}[0-9]{7}$#', $phone) ){
