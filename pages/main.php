@@ -27,44 +27,30 @@ $scs = Notifications::get_s();
             <form action="./" method="post">
 
                 <?php
-                if( ! $err || ! is_array($err) || count($err) < 1 ){
-
-                    if( is_array($scs) && count($scs) > 0 ){
+                if( (is_array($scs) && count($scs) > 0) || (is_array($err) && count($err) > 0) ){
                 ?>
 
                     <div class="message">
-                        <?php
-                        foreach( $scs as $v ){
-
-                            echo $v.'<br>';
-                        }
-                        ?>
-                    </div>
-
                     <?php
-                    }else{
-                    ?>
+                    foreach( $scs as $v ){
 
-                    <div class="message">
-                        Форма відправки заявки
-                    </div>
+                        echo $v.'<br>';
+                    }
 
-                    <?php
+                    foreach( $err as $v ){
+
+                        echo '<span>'.$v.'</span><br>';
                     }
                     ?>
+                    </div>
 
                 <?php
                 }else{
                 ?>
 
-                <div class="message">
-                <?php
-                foreach( $err as $v ){
-
-                    echo $v.'<br>';
-                }
-                ?>
-                </div>
+                    <div class="message">
+                        Форма відправки заявки
+                    </div>
 
                 <?php
                 }

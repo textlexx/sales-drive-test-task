@@ -550,74 +550,16 @@ class SendData{
         }
     }
 
-
+    
     public function dilovod($uname, $phone, $telegram_id){
 
-        $api_url = 'https://dilovod.ua';
-        $node_id = 'textlexx';
+        if($telegram_id){
 
-        $time = time();
-
-        $orderData = [
-            'number' => $time, 
-            'date' => date('Y-m-d H:i:s'), 
-            '-class' => 'Document.CustomerOrder',
-            'contragent' => [
-                'name' => $uname,
-                'details' => json_encode([
-                    'phone' => '+'.$phone,
-                    'email' => 'client@example.com'
-                ])
-            ],
-            'rows' => [
-                [
-                    'product' => $time+$time, 
-                    'quantity' => 1,
-                    'price' => 250.00
+            $this->send_to_telegram(
+                $telegram_id, 'Збій відправки dilovod. '.$uname.' '.$phone, [
+                    'remove_keyboard' => true,
                 ]
-            ]
-        ];
-
-        $requestPayload = [
-            'method' => 'saveObject',
-            'params' => [
-                'object' => $orderData
-            ]
-        ];
-
-        $credentials = base64_encode($node_id . ':' . DILOVOD_API_KEY);
-
-        $ch = curl_init($api_url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestPayload));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Basic ' . $credentials,
-            'Content-Type: application/json'
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        if(function_exists('curl_close')) curl_close($ch);
-
-        $result = json_decode($response, true);
-
-        if ($httpCode === 200 && isset($result['result'])) {
-
-            echo "Success. Document ID: " . $result['result'];
-        } else {
-
-            if($telegram_id){
-
-                $this->send_to_telegram(
-                    $telegram_id, 'Збій відправки dilovod.', [
-                        'remove_keyboard' => true,
-                    ]
-                );
-            }
-
-            //echo "Error: " . $response;
+            );
         }
     }
 }
