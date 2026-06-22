@@ -166,6 +166,9 @@ class SendData{
 
                     return false;
                 }
+            }else{
+
+                $fTel = '38'.$fTel;
             }
 
             Notifications::set_s('Дані введено вірно.');
@@ -443,7 +446,7 @@ class SendData{
         if($res === false) return false;
         elseif(is_array($res) && isset($res['telegram_id']) && $res['telegram_id']){
 
-            return $res['telegram_id'];
+            return (int) $res['telegram_id'];
         }else{
 
             return false;
@@ -523,6 +526,20 @@ class SendData{
                 return true;
             }
         }
+    }
+    
+
+    public function update_user_tgram_id($phone, $telegram_id){
+
+        $tableName = 'users';
+
+        $res = SendData::$db->dbUpdate(
+            $tableName, ['telegram_id' => $telegram_id], '`phone` = "'.$phone.'"'
+        );
+
+        if($res === false) return false;
+
+        return true;
     }
 }
 
