@@ -211,11 +211,6 @@ class SendData{
         if( ! $update = $this->get_tgram_or_stop() ) return false;
             
 
-        //------------------------------
-        // SAVE DATA OF USER CHAT_ID
-        //------------------------------
-
-
         if (isset($update['message']) && isset($update['message']['text']) && $update['message']['text'] == '/start') {
 
             $chat_id = $update['message']['chat']['id'];
