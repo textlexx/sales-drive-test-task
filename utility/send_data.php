@@ -272,7 +272,7 @@ class SendData{
         //------------------------------
 
 
-        if (isset($update['message']) && $update['message']['text'] == '/start') {
+        if (isset($update['message']) && isset($update['message']['text']) && $update['message']['text'] == '/start') {
 
             $chat_id = $update['message']['chat']['id'];
             /*
