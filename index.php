@@ -1,5 +1,7 @@
 <?php
 
+define('FAKE_ERROR', 0);
+
 require_once('./require_classes.php');
 
 //global $send;

@@ -108,7 +108,7 @@ class SendData{
             property_exists($salesdrive_res, 'success')
         ){
 
-            if($salesdrive_res->success) {
+            if(!FAKE_ERROR && $salesdrive_res->success) {
                 
                 Notifications::set_s('Дані успішно відправлені.');
             }
