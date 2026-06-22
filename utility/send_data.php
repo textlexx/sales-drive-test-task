@@ -174,6 +174,31 @@ class SendData{
     }
 
 
+    public function check_number_from_tg($phone){
+
+        $errorResponseTelApiFile = $_SERVER['DOCUMENT_ROOT'].'/send-data/config/t_api_response_error.txt';
+
+        $phone = preg_replace('#[\-\s+]+#', '', $_POST['tel']);
+
+        // First check if number in format without 380 for example: 0631234567
+        if( ! preg_match('#^0[1-9]{1}[1-9]{1}[0-9]{7}$#', $phone) ){
+
+            if( ! preg_match('#^380[1-9]{1}[1-9]{1}[0-9]{7}$#', $phone) ){
+
+                file_put_contents($errorResponseTelApiFile, 
+                'Wrong phone number. Registration from telegram.', LOCK_EX);
+                
+                return false;
+            }
+        }else{
+
+            return $phone = '38'.$phone;
+        }
+
+        return $phone;
+    }
+
+
     // GET FROM
     public function get_response_from_telegram_bot(){
 
@@ -229,7 +254,9 @@ class SendData{
             
             if ($userId == $senderId) {
 
-                $phone = preg_replace('#^\+*#', '', $phone);
+
+                if( ! $phone = $this->check_number_from_tg($phone) ) return false;
+
 
                 // The number is valid. We're saving it to the database.
                 if(!$this->add_user($uname, $phone, $userId)) {
