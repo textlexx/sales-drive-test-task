@@ -22,6 +22,8 @@ class SendData{
         $dat = $this->check_data_return();
         if( ! $dat ) return false;
 
+        if(!$this->add_user($dat->uname, $dat->phone, 0)) return false;
+
         $order_id = time();
 
         $products = [];
@@ -298,9 +300,9 @@ class SendData{
 
             $contact = $update['message']['contact'];
             
-            $phoneNumber = $contact['phone_number'];
+            $phone = $contact['phone_number'];
             $userId = $contact['user_id'];
-            $firstName = $contact['first_name'];
+            $uname = $contact['first_name'];
             
             // Security check: Does the sender's ID match the contact's ID?
             // (to prevent the user from forwarding someone else's contact instead of their own)
@@ -309,6 +311,19 @@ class SendData{
             if ($userId == $senderId) {
 
                 // The number is valid. We're saving it to the database.
+                if(!$this->add_user($uname, $phone, $userId)) {
+                    
+                    // We send a confirmation to the user and remove the keyboard
+                    $this->send_to_telegram(
+                        $userId, 
+                        'Не вдалося зробити підтвердження трапився збій. '.
+                        'Спробуйте ще раз пізніше нажавши на /start.', [
+                            'remove_keyboard' => true,
+                        ]
+                    );
+
+                    return false;
+                }
                 
                 // We send a confirmation to the user and remove the keyboard
                 $this->send_to_telegram(
@@ -316,10 +331,14 @@ class SendData{
                         'remove_keyboard' => true,
                     ]
                 );
+
+                return true;
             } else {
                 
                 file_put_contents($errorResponseTelApiFile, 
                 'The user sent someone else`s contact information', LOCK_EX);
+
+                return false;
             }
         }
     }
@@ -392,32 +411,70 @@ class SendData{
 
         $next_id = SendData::$db->genNextId($tableName, $rowName);
 
+        $res = SendData::$db->dbOneSelect('
+            SELECT `phone`, `telegram_id` FROM `'.$tableName.'` 
+            WHERE `phone` = "'.$phone.'"
+        ');
+
         if( ! $telegram_id ) {
 
-            SendData::$db->addInsertIgnore();
-
-            $res = SendData::$db->dbInsert(
-                $tableName,
-                [$rowName, 'telegram_id', 'name', 'phone',], [
-                    [$next_id, NULL, $name, $phone]
-                ]
-            );
-
             if($res === false) return false;
-        }else{
+            elseif(is_array($res) && isset($res['phone'])){
+                
+                $res = SendData::$db->dbUpdate(
+                    $tableName, ['name' => $name], '`phone` = "'.$phone.'"'
+                );
 
-            $res = SendData::$db->dbOneSelect('
-                SELECT `telegram_id` FROM `'.$tableName.'` 
-                WHERE `phone` = "'.$phone.'" AND `telegram_id` = "'.$telegram_id.'"
-            ');
-
-            if($res === false) return false;
-            elseif(is_array($res) && isset($res['telegram_id']) && $res['telegram_id'] == $telegram_id){
+                if($res === false) return false;
 
                 return true;
             }else{
 
-                
+                SendData::$db->addInsertIgnore();
+
+                $res = SendData::$db->dbInsert(
+                    $tableName,
+                    [$rowName, 'telegram_id', 'name', 'phone',], [
+                        [$next_id, NULL, $name, $phone]
+                    ]
+                );
+
+                if($res === false) return false;
+
+                return true;
+            }
+        }else{
+
+            if($res === false) return false;
+            elseif(is_array($res) && isset($res['telegram_id'])){
+
+                if( $res['telegram_id'] != $telegram_id ) {
+
+                    Notifications::set_e('Помилка. Телеграм користувач не співпадає.');
+                    return false;
+                }
+
+                $res = SendData::$db->dbUpdate(
+                    $tableName, ['name' => $name], '`phone` = "'.$phone.'"'
+                );
+
+                if($res === false) return false;
+
+                return true;
+            }else{
+
+                SendData::$db->addInsertIgnore();
+
+                $res = SendData::$db->dbInsert(
+                    $tableName,
+                    [$rowName, 'telegram_id', 'name', 'phone',], [
+                        [$next_id, $telegram_id, $name, $phone]
+                    ]
+                );
+
+                if($res === false) return false;
+
+                return true;
             }
         }
     }

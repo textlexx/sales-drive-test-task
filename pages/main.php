@@ -74,6 +74,7 @@ $scs = Notifications::get_s();
                 <div class="tgram">
                     <a target="_blank" href="https://t.me/textlexx_bot">
                         Щоб перестрахуватися спочатку добавте бот телеграма він буде повідомляти вас про збої.
+                        Для переходу натисніть на це зелене посилання.
                     </a>
                 </div>
 
@@ -85,7 +86,7 @@ $scs = Notifications::get_s();
                 </label>
 
                 <label>
-                    <div class="note">Телефон:</div>
+                    <div class="note">Телефон (цей номер має збігатися з номером, який ви додаєте в бота телеграм):</div>
                     <input type="tel" id="tel" name="tel">
                 </label>
 
