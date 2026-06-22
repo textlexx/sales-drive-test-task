@@ -24,120 +24,11 @@ class SendData{
 
         if(!$this->add_user($dat->uname, $dat->phone, 0)) return false;
 
-        $order_id = time();
-
-        $products = [];
-            
-        $products[0]["id"] = "11111"; // id товару
-        $products[0]["name"] = "Тестовий товар"; // назва товару
-        $products[0]["costPerItem"] = "2000"; // ціна
-        $products[0]["amount"] = "1"; // кількість
-        $products[0]["description"] = "Тестовий опис"; // опис товарної позиції в заявці
-        $products[0]["discount"] = "10%"; // знижка, задається в % або в абсолютній величині
-        $products[0]["sku"] = "sku-11111"; // артикул (SKU) товару
-
-        $shipping_method = 'novaposhta';
-        $payment_method = 'Післяплата';
-        $shipping_address = 'Місто тест, вулиця тест';
-        $shipping_data = [
-            "ServiceType" => "Warehouse", // можливі значення: Warehouse, Doors
-            "payer" => "recipient", // можливі значення: "sender", "recipient"
-            "area" => "Житомирська", // область російською або українською мовою, або Ref області в системі Нової пошти
-            "region" => "Житомирський", // район російською або українською мовою (використовується тільки якщо cityNameFormat=settlement)
-            "city" => "Коростишів", // назва міста російською чи українською мовою, або Ref міста у старій чи новій адресній системі системі Нової пошти. Під час передачі назви міста: у режимі cityNameFormat=short слід передавати лише назву міста; у режимі cityNameFormat=full слід передавати назву міста у старій адресній системі Нової Пошти.
-            "cityNameFormat" => "short", // можливі значення: "full" (за замовчуванням), "short"
-            "WarehouseNumber" => "Відділення №1", // відділення Нової Пошти в одному з форматів: номер, опис, Ref
-            "Street" => "", // назва і тип вулиці, або Ref вулиці в системі Нової пошти
-            "BuildingNumber" => "", // номер будинку
-            "Flat" => "", // номер квартири
-            "ttn" => "112233445566778" // ТТН
-        ];
-
-        $salesdrive_values = [
-            "getResultData" => "1", // Отримувати дані створеної заявки (0 - не отримувати, 1 - отримувати)
-            "products"=>$products, 
-            "comment"=>"", 
-            "externalId"=>$order_id, // Зовнішній номер заявки
-            "fName"=>$dat->uname, 
-            "lName"=>"",
-            "mName"=>"",
-            "phone"=>$dat->phone,
-            "email"=>"",
-            "con_comment"=>"",
-            "counterparty"=> [
-                "name" => "", // Назва контрагента 
-                "code" => "", // Номер ЄДРПОУ контрагента 
-            ],
-            "shipping_method"=>$shipping_method,
-            "payment_method"=>$payment_method,
-            "shipping_address"=>$shipping_address,
-
-            // Shipping method can be one from enum 
-            // "novaposhta|ukrposhta|meest|rozetka_delivery"
-            // and be setted by program what will need
-            "$shipping_method"=> $shipping_data,
-            
-            "orderStock"=>"", // Склад
-            "stockId"=>"", // id складу
-        ];
-
-        $salesdrive_ch = curl_init();
-
-        curl_setopt($salesdrive_ch, CURLOPT_URL, $this->salesdrive_url);
-        curl_setopt($salesdrive_ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($salesdrive_ch, CURLOPT_HTTPHEADER, $this->salesdrive_headers);
-        //curl_setopt($salesdrive_ch, CURLOPT_SAFE_UPLOAD, true);
-        curl_setopt($salesdrive_ch, CURLOPT_CONNECTTIMEOUT, 10);
-        curl_setopt($salesdrive_ch, CURLOPT_POST, 1);
-        curl_setopt($salesdrive_ch, CURLOPT_POSTFIELDS, json_encode($salesdrive_values));
-        curl_setopt($salesdrive_ch, CURLOPT_TIMEOUT, 15);
-
-        $salesdrive_res = curl_exec($salesdrive_ch);
-
-        if( $salesdrive_res ){
-
-            $salesdrive_res = json_decode($salesdrive_res);
-        }
-
-        $salesdrive_res = (object) $salesdrive_res;
-
         $telegram_id = $this->get_db_tgram_id($dat->phone);
 
-        if(
-            $salesdrive_res && is_object($salesdrive_res) && 
-            property_exists($salesdrive_res, 'success')
-        ){
+        $this->salesdrive($dat->uname, $dat->phone, $telegram_id);
 
-            if(!FAKE_ERROR && $salesdrive_res->success) {
-                
-                Notifications::set_s('Дані успішно відправлені.');
-            }
-            else {
-
-                if($telegram_id){
-
-                    $this->send_to_telegram(
-                        $telegram_id, 'Збій відправки salesdrive.', [
-                            'remove_keyboard' => true,
-                        ]
-                    );
-                }
-
-                Notifications::set_e('Помилка відправки даних.');
-            }
-        }else{
-
-            if($telegram_id){
-
-                $this->send_to_telegram(
-                    $telegram_id, 'Збій відправки salesdrive.', [
-                        'remove_keyboard' => true,
-                    ]
-                );
-            }
-
-            Notifications::set_e('Помилка відправки даних.');
-        }
+        $this->dilovod($dat->uname, $dat->phone, $telegram_id);
     }
 
     public function check_data_return(){
@@ -534,6 +425,200 @@ class SendData{
         if($res === false) return false;
 
         return true;
+    }
+
+
+    public function salesdrive($uname, $phone, $telegram_id){
+
+        $order_id = time();
+
+        $products = [];
+            
+        $products[0]["id"] = "11111"; // id товару
+        $products[0]["name"] = "Тестовий товар"; // назва товару
+        $products[0]["costPerItem"] = "2000"; // ціна
+        $products[0]["amount"] = "1"; // кількість
+        $products[0]["description"] = "Тестовий опис"; // опис товарної позиції в заявці
+        $products[0]["discount"] = "10%"; // знижка, задається в % або в абсолютній величині
+        $products[0]["sku"] = "sku-11111"; // артикул (SKU) товару
+
+        $shipping_method = 'novaposhta';
+        $payment_method = 'Післяплата';
+        $shipping_address = 'Місто тест, вулиця тест';
+        $shipping_data = [
+            "ServiceType" => "Warehouse", // можливі значення: Warehouse, Doors
+            "payer" => "recipient", // можливі значення: "sender", "recipient"
+            "area" => "Житомирська", // область російською або українською мовою, або Ref області в системі Нової пошти
+            "region" => "Житомирський", // район російською або українською мовою (використовується тільки якщо cityNameFormat=settlement)
+            "city" => "Коростишів", // назва міста російською чи українською мовою, або Ref міста у старій чи новій адресній системі системі Нової пошти. Під час передачі назви міста: у режимі cityNameFormat=short слід передавати лише назву міста; у режимі cityNameFormat=full слід передавати назву міста у старій адресній системі Нової Пошти.
+            "cityNameFormat" => "short", // можливі значення: "full" (за замовчуванням), "short"
+            "WarehouseNumber" => "Відділення №1", // відділення Нової Пошти в одному з форматів: номер, опис, Ref
+            "Street" => "", // назва і тип вулиці, або Ref вулиці в системі Нової пошти
+            "BuildingNumber" => "", // номер будинку
+            "Flat" => "", // номер квартири
+            "ttn" => "112233445566778" // ТТН
+        ];
+
+        $salesdrive_values = [
+            "getResultData" => "1", // Отримувати дані створеної заявки (0 - не отримувати, 1 - отримувати)
+            "products"=>$products, 
+            "comment"=>"", 
+            "externalId"=>$order_id, // Зовнішній номер заявки
+            "fName"=>$uname, 
+            "lName"=>"",
+            "mName"=>"",
+            "phone"=>$phone,
+            "email"=>"",
+            "con_comment"=>"",
+            "counterparty"=> [
+                "name" => "", // Назва контрагента 
+                "code" => "", // Номер ЄДРПОУ контрагента 
+            ],
+            "shipping_method"=>$shipping_method,
+            "payment_method"=>$payment_method,
+            "shipping_address"=>$shipping_address,
+
+            // Shipping method can be one from enum 
+            // "novaposhta|ukrposhta|meest|rozetka_delivery"
+            // and be setted by program what will need
+            "$shipping_method"=> $shipping_data,
+            
+            "orderStock"=>"", // Склад
+            "stockId"=>"", // id складу
+        ];
+
+        $salesdrive_ch = curl_init();
+
+        curl_setopt($salesdrive_ch, CURLOPT_URL, $this->salesdrive_url);
+        curl_setopt($salesdrive_ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($salesdrive_ch, CURLOPT_HTTPHEADER, $this->salesdrive_headers);
+        //curl_setopt($salesdrive_ch, CURLOPT_SAFE_UPLOAD, true);
+        curl_setopt($salesdrive_ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($salesdrive_ch, CURLOPT_POST, 1);
+        curl_setopt($salesdrive_ch, CURLOPT_POSTFIELDS, json_encode($salesdrive_values));
+        curl_setopt($salesdrive_ch, CURLOPT_TIMEOUT, 15);
+
+        $salesdrive_res = curl_exec($salesdrive_ch);
+
+        if( $salesdrive_res ){
+
+            $salesdrive_res = json_decode($salesdrive_res);
+        }
+
+        $salesdrive_res = (object) $salesdrive_res;
+
+        if(
+            $salesdrive_res && is_object($salesdrive_res) && 
+            property_exists($salesdrive_res, 'success')
+        ){
+
+            if(!FAKE_ERROR && $salesdrive_res->success) {
+                
+                Notifications::set_s('Дані успішно відправлені.');
+
+                return true;
+            }
+            else {
+
+                if($telegram_id){
+
+                    $this->send_to_telegram(
+                        $telegram_id, 'Збій відправки salesdrive.', [
+                            'remove_keyboard' => true,
+                        ]
+                    );
+                }
+
+                Notifications::set_e('Помилка відправки даних.');
+
+                return false;
+            }
+        }else{
+
+            if($telegram_id){
+
+                $this->send_to_telegram(
+                    $telegram_id, 'Збій відправки salesdrive.', [
+                        'remove_keyboard' => true,
+                    ]
+                );
+            }
+
+            Notifications::set_e('Помилка відправки даних.');
+
+            return false;
+        }
+    }
+
+
+    public function dilovod($uname, $phone, $telegram_id){
+
+        $api_url = 'https://dilovod.ua';
+        $node_id = 'textlexx';
+
+        $time = time();
+
+        $orderData = [
+            'number' => $time, 
+            'date' => date('Y-m-d H:i:s'), 
+            '-class' => 'Document.CustomerOrder',
+            'contragent' => [
+                'name' => $uname,
+                'details' => json_encode([
+                    'phone' => '+'.$phone,
+                    'email' => 'client@example.com'
+                ])
+            ],
+            'rows' => [
+                [
+                    'product' => $time+$time, 
+                    'quantity' => 1,
+                    'price' => 250.00
+                ]
+            ]
+        ];
+
+        $requestPayload = [
+            'method' => 'saveObject',
+            'params' => [
+                'object' => $orderData
+            ]
+        ];
+
+        $credentials = base64_encode($node_id . ':' . DILOVOD_API_KEY);
+
+        $ch = curl_init($api_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestPayload));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Basic ' . $credentials,
+            'Content-Type: application/json'
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        
+        if(function_exists('curl_close')) curl_close($ch);
+
+        $result = json_decode($response, true);
+
+        if ($httpCode === 200 && isset($result['result'])) {
+
+            echo "Success. Document ID: " . $result['result'];
+        } else {
+
+            if($telegram_id){
+
+                $this->send_to_telegram(
+                    $telegram_id, 'Збій відправки dilovod.', [
+                        'remove_keyboard' => true,
+                    ]
+                );
+            }
+
+            //echo "Error: " . $response;
+        }
     }
 }
 
