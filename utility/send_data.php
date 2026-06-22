@@ -101,16 +101,40 @@ class SendData{
 
         $salesdrive_res = (object) $salesdrive_res;
 
+        $telegram_id = $this->check_user_exists_in_db($dat->phone);
+
         if(
             $salesdrive_res && is_object($salesdrive_res) && 
             property_exists($salesdrive_res, 'success')
         ){
 
-            if($salesdrive_res->success) 
+            if($salesdrive_res->success) {
+                
                 Notifications::set_s('Дані успішно відправлені.');
-            else 
+            }
+            else {
+
+                if($telegram_id){
+
+                    $this->send_to_telegram(
+                        $telegram_id, 'Збій відправки salesdrive.', [
+                            'remove_keyboard' => true,
+                        ]
+                    );
+                }
+
                 Notifications::set_e('Помилка відправки даних.');
+            }
         }else{
+
+            if($telegram_id){
+
+                $this->send_to_telegram(
+                    $telegram_id, 'Збій відправки salesdrive.', [
+                        'remove_keyboard' => true,
+                    ]
+                );
+            }
 
             Notifications::set_e('Помилка відправки даних.');
         }
@@ -310,6 +334,8 @@ class SendData{
             
             if ($userId == $senderId) {
 
+                $phone = preg_replace('#^+#', '', $phone);
+
                 // The number is valid. We're saving it to the database.
                 if(!$this->add_user($uname, $phone, $userId)) {
                     
@@ -403,6 +429,26 @@ class SendData{
 		
 		return true;
 	}
+
+
+    public function check_user_exists_in_db($phone){
+
+        $tableName = 'users';
+
+        $res = SendData::$db->dbOneSelect('
+            SELECT `phone`, `telegram_id` FROM `'.$tableName.'` 
+            WHERE `phone` = "'.$phone.'"
+        ');
+
+        if($res === false) return false;
+        elseif(is_array($res) && isset($res['telegram_id']) && $res['telegram_id']){
+
+            return $res['telegram_id'];
+        }else{
+
+            return false;
+        }    
+    }
 
 
     public function add_user($name, $phone, $telegram_id = 0){
