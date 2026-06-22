@@ -71,6 +71,13 @@ $scs = Notifications::get_s();
                 ?>
 
 
+                <div class="tgram">
+                    <a target="_blank" href="https://t.me/textlexx_bot">
+                        Щоб перестрахуватися спочатку добавте бот телеграма він буде повідомляти вас про збої.
+                    </a>
+                </div>
+
+
 
                 <label>
                     <div class="note">Ім'я:</div>
