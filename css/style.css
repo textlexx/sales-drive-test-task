@@ -31,7 +31,7 @@ html,body{
     max-width: 480px;
     min-width: 270px;
     width:auto;
-    height: 453px;
+    height: 477px;
     border:1px solid #cccccc;
     position: absolute;
     top:0; bottom:0; left:15px; right: 15px;
@@ -95,5 +95,6 @@ input[type="submit"]{
     color: #000000;
     font-size: 16px;
     padding:0 20px 0 20px;
+    margin-top:10px;
     cursor: pointer;
 }
