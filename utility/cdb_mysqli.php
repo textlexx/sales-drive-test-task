@@ -341,7 +341,7 @@ class CDBMysqli{
 
 	public static function genNextId($tableName = 'users', $rowName = 'id'){
 		
-		$data = CDBMysqli::$db_object->dbOneSelect(
+		$data = CDBMysqli::$db->dbOneSelect(
             'SELECT MAX(`'.$rowName.'`) AS `max_id` FROM `'.$tableName.'`'
         );
 
