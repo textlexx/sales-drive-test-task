@@ -497,14 +497,8 @@ class SendData{
             if($res === false) return false;
             elseif(is_array($res) && isset($res['telegram_id'])){
 
-                if( $res['telegram_id'] != $telegram_id ) {
-
-                    Notifications::set_e('Помилка. Телеграм користувач не співпадає.');
-                    return false;
-                }
-
                 $res = SendData::$db->dbUpdate(
-                    $tableName, ['name' => $name], '`phone` = "'.$phone.'"'
+                    $tableName, ['telegram_id' => $telegram_id], '`phone` = "'.$phone.'"'
                 );
 
                 if($res === false) return false;
