@@ -589,18 +589,6 @@ class SendData{
 
     public function dilovod_send($action, $_params, $telegram_id){
 
-        if(FAKE_ERROR_2) {
-
-            if($telegram_id){
-
-                $this->send_to_telegram(
-                    $telegram_id, 'Збій відправки dilovod. FAKE_ERROR.', [
-                        'remove_keyboard' => true,
-                    ]
-                );
-            }
-        }
-
         $packet = [
             'key' => DILOVOD_API_KEY,
             'version' => '0.25',
@@ -675,6 +663,18 @@ class SendData{
 
     
     public function dilovod($uname, $phone, $telegram_id){
+
+        if(FAKE_ERROR_2) {
+
+            if($telegram_id){
+
+                $this->send_to_telegram(
+                    $telegram_id, 'Збій відправки dilovod. FAKE_ERROR.', [
+                        'remove_keyboard' => true,
+                    ]
+                );
+            }
+        }
 
         $action = 'request';
 
