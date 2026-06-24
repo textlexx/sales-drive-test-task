@@ -9,6 +9,7 @@ class SendData{
         "Content-Type: application/json",
         "X-Api-Key: ".SALES_DRIVE_API_KEY
     ];
+    public $api_url = 'https://api.dilovod.ua';
 
     public $tgram_send_mess_url = 'https://api.telegram.org/bot'.TELEGRAM_API_TOKEN.'/sendMessage';
     
@@ -573,17 +574,125 @@ class SendData{
         }
     }
 
+
+    public function dilovod_send($action, $_params, $telegram_id){
+
+        $packet = [
+            'key' => DILOVOD_API_KEY,
+            'version' => '0.25',
+            'action' => $action,
+            'params' => $_params
+        ];
+
+        $postData = [
+            'packet' => json_encode($packet, JSON_UNESCAPED_UNICODE)
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $this->api_url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded; charset=utf-8'
+        ]);
+
+        $response = curl_exec($ch);
+
+        if(function_exists('curl_close')) curl_close($ch);
+
+        if (curl_errno($ch)) {
+
+            if($telegram_id){
+
+                $this->send_to_telegram(
+                    $telegram_id, 'Збій відправки dilovod. '.htmlspecialchars(curl_error($ch)), [
+                        'remove_keyboard' => true,
+                    ]
+                );
+            }
+
+            //echo 'Ошибка cURL: ' . curl_error($ch);
+        } else {
+
+            $result = json_decode($response, true);
+
+            if (isset($result['error'])) {
+
+                if($telegram_id){
+
+                    $this->send_to_telegram(
+                        $telegram_id, 'Збій відправки dilovod. '.htmlspecialchars($response), [
+                            'remove_keyboard' => true,
+                        ]
+                    );
+                }
+
+                //echo 'Error: ' . $result['error']['message'];
+            } else {
+
+                /*
+                if($telegram_id){
+
+                    $this->send_to_telegram(
+                        $telegram_id, 'Успіх dilovod. '.htmlspecialchars($response), [
+                            'remove_keyboard' => true,
+                        ]
+                    );
+                }
+                */
+                
+                return $result;
+            }
+        }
+
+        return false;
+    }
+
     
     public function dilovod($uname, $phone, $telegram_id){
 
-        if($telegram_id){
+        $action = 'request';
 
-            $this->send_to_telegram(
-                $telegram_id, 'Збій відправки dilovod. '.$uname.' '.$phone, [
-                    'remove_keyboard' => true,
-                ]
-            );
-        }
+        $_params = [
+            'from' => 'documents.saleOrder',
+            'fields' => ['number' => 'n'],
+        ];
+
+        $result = $this->dilovod_send($action, $_params, $telegram_id);
+        
+        if( !$result ) return false;
+
+        $lastOrdNum = $result[count($result)-1]['n'];
+        $lastOrdNum = preg_replace('#^[0]+#', '', $lastOrdNum);
+        $amm = mb_strlen($lastOrdNum);
+        $howZero = 7 - $amm;
+        $zeros = '';
+        for($i=0; $i<$howZero; $i++) $zeros .= '0';
+        $lastOrdNum++;
+        $lastOrdNum = $zeros.$lastOrdNum;
+
+        //----------------------------------------------
+
+        $action = 'saveObject';
+
+        $_params = [
+            "header" => [
+                "id" => "documents.saleOrder",
+                "date" => date('Y-m-d H:i:s'),
+                "number" => $lastOrdNum,
+                "amountCur" => "750.00",
+                "firm" =>  "1100400000001001",
+                "currency" =>  "1101200000001001",
+                "person" =>  "1100100000000001",
+                "details" => "Ім'я: ".$uname." Тел: ".$phone,
+                "state" => "1111500000000005"
+            ]
+        ];
+
+        $result = $this->dilovod_send($action, $_params, $telegram_id);
+
+        if( !$result ) return false;
     }
 }
 
