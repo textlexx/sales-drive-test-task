@@ -1,6 +1,7 @@
 <?php
 
 define('FAKE_ERROR', 0);
+define('FAKE_ERROR_2', 0);
 
 require_once('./require_classes.php');
 

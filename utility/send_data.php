@@ -454,6 +454,18 @@ class SendData{
 
     public function salesdrive($uname, $phone, $telegram_id){
 
+        if(FAKE_ERROR) {
+
+            if($telegram_id){
+
+                $this->send_to_telegram(
+                    $telegram_id, 'Збій відправки salesdrive. FAKE_ERROR.', [
+                        'remove_keyboard' => true,
+                    ]
+                );
+            }
+        }
+
         $order_id = time();
 
         $products = [];
@@ -536,7 +548,7 @@ class SendData{
             property_exists($salesdrive_res, 'success')
         ){
 
-            if(!FAKE_ERROR && $salesdrive_res->success) {
+            if($salesdrive_res->success) {
                 
                 Notifications::set_s('Дані успішно відправлені.');
 
@@ -576,6 +588,18 @@ class SendData{
 
 
     public function dilovod_send($action, $_params, $telegram_id){
+
+        if(FAKE_ERROR_2) {
+
+            if($telegram_id){
+
+                $this->send_to_telegram(
+                    $telegram_id, 'Збій відправки dilovod. FAKE_ERROR.', [
+                        'remove_keyboard' => true,
+                    ]
+                );
+            }
+        }
 
         $packet = [
             'key' => DILOVOD_API_KEY,
